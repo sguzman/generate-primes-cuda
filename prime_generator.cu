@@ -14,12 +14,6 @@
     }                                                     \
 }
 
-#include <chrono>
-
-void debugLog(const std::string& message) {
-    std::cout << "[DEBUG] " << message << std::endl;
-}
-
 __global__ void sieveKernel(bool* isPrime, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < 2) return; // 0 and 1 are not primes
@@ -44,6 +38,10 @@ void validateInput(int argc, char* argv[], int& number) {
         std::cerr << "Invalid input: " << e.what() << std::endl;
         exit(EXIT_FAILURE);
     }
+}
+
+void debugLog(const std::string& message) {
+    std::cout << "[DEBUG] " << message << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -93,3 +91,4 @@ int main(int argc, char* argv[]) {
     delete[] h_isPrime;
     return 0;
 }
+
