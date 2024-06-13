@@ -6,3 +6,4 @@
 *.fatbin
 prime_generator
 primes.txt
+primes*.txt

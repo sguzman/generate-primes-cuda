@@ -1,9 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <vector>
+#include <thread>
 #include <cuda_runtime.h>
 
 #define BLOCK_SIZE 256
+#define NUM_FILES 4 // Number of files to write to in parallel
 
 // Error handling macro
 #define cudaCheckError() {                              \
@@ -44,6 +47,20 @@ void debugLog(const std::string& message) {
     std::cout << "[DEBUG] " << message << std::endl;
 }
 
+void writePrimesToFile(const std::vector<int>& primes, int fileIndex) {
+    std::string filename = "primes_" + std::to_string(fileIndex) + ".txt";
+    std::ofstream outfile(filename);
+    if (!outfile.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    for (int prime : primes) {
+        outfile << prime << std::endl;
+    }
+    outfile.close();
+}
+
 int main(int argc, char* argv[]) {
     int n;
     validateInput(argc, argv, n);
@@ -78,22 +95,26 @@ int main(int argc, char* argv[]) {
     cudaFree(d_isPrime);
     cudaCheckError();
 
-    debugLog("Writing primes to file.");
-    std::ofstream outfile("primes.txt");
-    if (!outfile.is_open()) {
-        std::cerr << "Failed to open file for writing." << std::endl;
-        delete[] h_isPrime;
-        exit(EXIT_FAILURE);
-    }
-
+    // Split primes into multiple buffers
+    std::vector<std::vector<int>> primeBuffers(NUM_FILES);
     for (int i = 2; i < n; ++i) {
         if (h_isPrime[i]) {
-            outfile << i << std::endl;
+            primeBuffers[i % NUM_FILES].push_back(i);
         }
     }
-    outfile.close();
+
+    debugLog("Writing primes to files in parallel.");
+    std::vector<std::thread> threads;
+    for (int i = 0; i < NUM_FILES; ++i) {
+        threads.emplace_back(writePrimesToFile, std::ref(primeBuffers[i]), i);
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
     debugLog("Prime number generation completed.");
 
     delete[] h_isPrime;
     return 0;
 }
+
