@@ -58,14 +58,20 @@ int main(int argc, char* argv[]) {
     cudaMemcpy(d_isPrime, h_isPrime, n * sizeof(bool), cudaMemcpyHostToDevice);
     cudaCheckError();
     
-    auto start = std::chrono::high_resolution_clock::now();
+    // Using CUDA events for timing
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    
+    cudaEventRecord(start);
     int numBlocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
     sieveKernel<<<numBlocks, BLOCK_SIZE>>>(d_isPrime, n);
-    cudaDeviceSynchronize();
-    cudaCheckError();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = end - start;
-    debugLog("CUDA kernel execution completed in " + std::to_string(duration.count()) + " seconds.");
+    cudaEventRecord(stop);
+    
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    debugLog("CUDA kernel execution completed in " + std::to_string(milliseconds / 1000.0) + " seconds.");
 
     cudaMemcpy(h_isPrime, d_isPrime, n * sizeof(bool), cudaMemcpyDeviceToHost);
     cudaCheckError();
@@ -91,4 +97,3 @@ int main(int argc, char* argv[]) {
     delete[] h_isPrime;
     return 0;
 }
-
