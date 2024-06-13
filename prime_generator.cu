@@ -117,4 +117,3 @@ int main(int argc, char* argv[]) {
     delete[] h_isPrime;
     return 0;
 }
-
